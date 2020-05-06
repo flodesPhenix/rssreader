@@ -37,12 +37,7 @@ import java.net.http.HttpResponse;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -52,10 +47,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.GZIPInputStream;
 
-import static javax.xml.stream.XMLStreamConstants.CDATA;
-import static javax.xml.stream.XMLStreamConstants.CHARACTERS;
-import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
-import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
+import static javax.xml.stream.XMLStreamConstants.*;
 
 
 /**
@@ -75,6 +67,7 @@ public class RssReader {
 
     /**
      * Read RSS feed with the given URL.
+     *
      * @param url URL to RSS feed.
      * @return Stream of items
      * @throws IOException Fail to read url or its content
@@ -88,7 +81,7 @@ public class RssReader {
                 throw e.getCause();
             } catch (IOException e2) {
                 throw e2;
-            } catch(Throwable e2) {
+            } catch (Throwable e2) {
                 throw new AssertionError(e2);
             }
         }
@@ -96,6 +89,7 @@ public class RssReader {
 
     /**
      * Read RSS feed asynchronous with the given URL.
+     *
      * @param url URL to RSS feed.
      * @return Stream of items
      */
@@ -147,8 +141,7 @@ public class RssReader {
 
         if (firstChar != 65279 && firstChar != 13 && firstChar != 10 && !Character.isWhitespace(firstChar)) {
             inputStream.reset();
-        }
-        else if (firstChar == 13 || Character.isWhitespace(firstChar)) {
+        } else if (firstChar == 13 || Character.isWhitespace(firstChar)) {
             var secondChar = inputStream.read();
 
             if (secondChar != 10 && !Character.isWhitespace(secondChar)) {
@@ -163,6 +156,7 @@ public class RssReader {
         private XMLStreamReader reader;
         private Channel channel;
         private Item item = null;
+        private Enclosure enclosure = null;
         private Item nextItem;
         private boolean isChannelPart = true;
         private String elementName = null;
@@ -181,8 +175,7 @@ public class RssReader {
                 xmlInFact.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
 
                 reader = xmlInFact.createXMLStreamReader(is);
-            }
-            catch (XMLStreamException e) {
+            } catch (XMLStreamException e) {
                 var logger = Logger.getLogger(LOG_GROUP);
 
                 if (logger.isLoggable(Level.WARNING))
@@ -194,8 +187,7 @@ public class RssReader {
             if (nextItem == null) {
                 try {
                     nextItem = next();
-                }
-                catch (NoSuchElementException e) {
+                } catch (NoSuchElementException e) {
                     nextItem = null;
                 }
             }
@@ -223,12 +215,10 @@ public class RssReader {
 
                     if (type == CHARACTERS || type == CDATA) {
                         parseCharacters();
-                    }
-                    else if (type == START_ELEMENT) {
+                    } else if (type == START_ELEMENT) {
                         parseStartElement();
                         parseAttributes();
-                    }
-                    else if (type == END_ELEMENT) {
+                    } else if (type == END_ELEMENT) {
                         var itemParsed = parseEndElement();
 
                         if (itemParsed)
@@ -265,16 +255,26 @@ public class RssReader {
                 channel.setDescription("");
                 channel.setLink("");
                 isChannelPart = true;
-            }
-            else if ("item".equals(elementName) || "entry".equals(elementName)) {
+            } else if ("item".equals(elementName) || "entry".equals(elementName)) {
                 item = new Item();
                 item.setChannel(channel);
                 isChannelPart = false;
-            }
-            else if ("guid".equals(elementName)) {
+            } else if ("guid".equals(elementName)) {
                 var value = reader.getAttributeValue(null, "isPermaLink");
                 if (item != null)
                     item.setIsPermaLink(Boolean.valueOf(value));
+            } else if ("enclosure".equals(elementName)) {
+                var lengthValue = Integer.valueOf(reader.getAttributeValue(null, "length"));
+                var typeValue = reader.getAttributeValue(null, "type");
+                var urlValue = reader.getAttributeValue(null, "url");
+                if (item != null) {
+                    enclosure = new Enclosure();
+                    enclosure.setLength(lengthValue);
+                    enclosure.setType(typeValue);
+                    enclosure.setUrl(urlValue);
+
+                    item.setEnclosure(enclosure);
+                }
             }
         }
 
