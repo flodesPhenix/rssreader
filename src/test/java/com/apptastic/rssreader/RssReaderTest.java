@@ -14,10 +14,9 @@ import java.util.stream.Collectors;
 
 import static com.github.npathai.hamcrestopt.OptionalMatchers.isPresentAndIs;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-
-import static org.junit.Assert.*;
 
 
 public class RssReaderTest {
@@ -65,6 +64,7 @@ public class RssReaderTest {
                 "<link>https://www.dummy.com/</link>\n" +
                 "<item xml:base=\"https://www.dummy.com/item1\">\n" +
                 "<guid isPermaLink=\"false\">https://www.dummy.com/item1</guid>\n" +
+                "<enclosure length=\"42\" url=\"https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg\" type=\"image/svg+xml\"/>" +
                 "<title>Title item 1</title>\n" +
                 "<description>Description item 1.</description>\n" +
                 "<pubDate>Wed, 23 May 2018 09:30:20 +0200</pubDate>\n" +
@@ -89,6 +89,12 @@ public class RssReaderTest {
         assertThat(item.getPubDate(), isPresentAndIs("Wed, 23 May 2018 09:30:20 +0200"));
         assertThat(item.getLink(), isPresentAndIs("https://www.dummy.com/item1"));
         assertThat(item.getGuid(), isPresentAndIs("https://www.dummy.com/item1"));
+        assertThat(item.getGuid(), isPresentAndIs("https://www.dummy.com/item1"));
+        Enclosure enclosure = item.getEnclosure();
+        assertNotNull(enclosure);
+        assertThat(enclosure.getLength(), isPresentAndIs(42));
+        assertThat(enclosure.getType(), isPresentAndIs("image/svg+xml"));
+        assertThat(enclosure.getUrl(), isPresentAndIs("https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg"));
         assertThat(item.getIsPermaLink(), isPresentAndIs(false));
 
         Channel channel = item.getChannel();
@@ -136,6 +142,7 @@ public class RssReaderTest {
         assertThat(item.getPubDate(), isPresentAndIs("Wed, 23 May 2018 09:30:20 +0200"));
         assertThat(item.getLink(), isPresentAndIs("https://www.dummy.com/item1"));
         assertThat(item.getGuid(), isPresentAndIs("https://www.dummy.com/item1"));
+        assertNull(item.getEnclosure());
         assertThat(item.getIsPermaLink(), isPresentAndIs(false));
 
         Channel channel = item.getChannel();
@@ -183,6 +190,7 @@ public class RssReaderTest {
         assertThat(item.getPubDate(), isPresentAndIs("Wed, 23 May 2018 09:30:20 +0200"));
         assertThat(item.getLink(), isPresentAndIs("https://www.dummy.com/item1"));
         assertThat(item.getGuid(), isPresentAndIs("https://www.dummy.com/item1"));
+        assertNull(item.getEnclosure());
         assertThat(item.getIsPermaLink(), isPresentAndIs(false));
 
         Channel channel = item.getChannel();
